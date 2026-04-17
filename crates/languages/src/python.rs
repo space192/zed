@@ -82,7 +82,8 @@ impl ManifestProvider for PyprojectTomlManifestProvider {
             delegate,
         }: ManifestQuery,
     ) -> Option<Arc<RelPath>> {
-        const WORKSPACE_LOCKFILES: &[&str] = &["uv.lock", "poetry.lock", "pdm.lock", "Pipfile.lock"];
+        const WORKSPACE_LOCKFILES: &[&str] =
+            &["uv.lock", "poetry.lock", "pdm.lock", "Pipfile.lock"];
 
         let mut innermost_pyproject = None;
         let mut outermost_workspace_root = None;
@@ -3072,10 +3073,7 @@ mod tests {
 
         #[test]
         fn test_simple_project_no_lockfile() {
-            let result = search(
-                &["project/pyproject.toml"],
-                "project/src/main.py",
-            );
+            let result = search(&["project/pyproject.toml"], "project/src/main.py");
             assert_eq!(result.as_deref(), RelPath::unix("project").ok());
         }
 
@@ -3095,11 +3093,7 @@ mod tests {
         #[test]
         fn test_poetry_workspace_returns_root() {
             let result = search(
-                &[
-                    "pyproject.toml",
-                    "poetry.lock",
-                    "libs/mylib/pyproject.toml",
-                ],
+                &["pyproject.toml", "poetry.lock", "libs/mylib/pyproject.toml"],
                 "libs/mylib/src/main.py",
             );
             assert_eq!(result.as_deref(), RelPath::unix("").ok());
@@ -3121,19 +3115,13 @@ mod tests {
         #[test]
         fn test_independent_subprojects_no_lockfile_at_root() {
             let result_a = search(
-                &[
-                    "project-a/pyproject.toml",
-                    "project-b/pyproject.toml",
-                ],
+                &["project-a/pyproject.toml", "project-b/pyproject.toml"],
                 "project-a/src/main.py",
             );
             assert_eq!(result_a.as_deref(), RelPath::unix("project-a").ok());
 
             let result_b = search(
-                &[
-                    "project-a/pyproject.toml",
-                    "project-b/pyproject.toml",
-                ],
+                &["project-a/pyproject.toml", "project-b/pyproject.toml"],
                 "project-b/src/main.py",
             );
             assert_eq!(result_b.as_deref(), RelPath::unix("project-b").ok());
@@ -3163,20 +3151,17 @@ mod tests {
         #[test]
         fn test_depth_limits_search() {
             let delegate = Arc::new(FakeManifestDelegate {
-                existing_files: [
-                    "pyproject.toml",
-                    "uv.lock",
-                    "deep/nested/pyproject.toml",
-                ]
-                .into_iter()
-                .collect(),
+                existing_files: ["pyproject.toml", "uv.lock", "deep/nested/pyproject.toml"]
+                    .into_iter()
+                    .collect(),
             });
             let provider = PyprojectTomlManifestProvider;
-            // depth=2 from "deep/nested/src/main.py" searches: "deep/nested/src" and "deep/nested"
+            // depth=3 from "deep/nested/src/main.py" searches:
+            //   "deep/nested/src/main.py", "deep/nested/src", and "deep/nested"
             // It won't reach "deep" or root ""
             let result = provider.search(ManifestQuery {
                 path: RelPath::unix("deep/nested/src/main.py").unwrap().into(),
-                depth: 2,
+                depth: 3,
                 delegate,
             });
             assert_eq!(result.as_deref(), RelPath::unix("deep/nested").ok());
